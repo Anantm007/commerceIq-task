@@ -6,14 +6,17 @@ const router = express.Router();
 const {
   readFromFile,
   writeToFile,
+  filterArrayById,
+  filterArrayByIdAndReturnIndex,
   filterArray,
-  filterArrayAndReturnIndex,
+  sortArray,
 } = require("../helpers/utils");
 
-/** @route: GET: /api/:entity
- * @todo: Sorting and filtering
+/**
+ * @route: GET /api/:entity
  * @desc: Fetch all the records of the requested entity (filters can also be there)
- * @returns: All the records of the entity with their length
+ * @param {string} [optional] Query params - for sorting and searching (such as _sort, _order, title etc)
+ * @return {array} records - All the filtered and sorted records of the entity with their length
  */
 router.get("/:entity", async (req, res) => {
   try {
@@ -30,7 +33,7 @@ router.get("/:entity", async (req, res) => {
 
     // Get all the entities from the DB
     const entity = req.params.entity;
-    const records = data[entity];
+    let records = data[entity];
 
     // If data not found
     if (!records || records.length === 0) {
@@ -40,7 +43,24 @@ router.get("/:entity", async (req, res) => {
       });
     }
 
-    // Return
+    const queryObj = req.query;
+
+    // Filtering the records (if any)
+    if (JSON.stringify(queryObj) !== JSON.stringify({})) {
+      records = await filterArray(records, queryObj);
+    }
+
+    // Sorting the records, by default in ascending order
+    let order = "asc";
+    if ("_sort" in queryObj) {
+      if (queryObj._order === "desc") {
+        order = "desc";
+      }
+
+      records = await sortArray(records, queryObj._sort, order);
+    }
+
+    // Return the final result
     return res
       .status(200)
       .json({ success: true, length: records.length, data: records });
@@ -52,11 +72,12 @@ router.get("/:entity", async (req, res) => {
   }
 });
 
-/** @route: GET /api/:entity/:id
- * @param: entity - the name of the parent container
- * @param: id - the id of the record of the requested entity
+/**
+ * @route: GET /api/:entity/:id
  * @desc: Fetch a single record (by id) of the requested entity
- * @returns: The record in the requested entity. Return 404 if not found.
+ * @param {string} entity - the name of the parent container
+ * @param {number} id - the id of the record of the requested entity
+ * @return {object} entityRecord- The record in the requested entity. Return 404 if not found.
  */
 router.get("/:entity/:id", async (req, res) => {
   try {
@@ -79,7 +100,7 @@ router.get("/:entity/:id", async (req, res) => {
     const entityId = parseInt(req.params.id);
 
     // Take out the specific entity record with the mentioned id
-    const entityRecord = await filterArray(records, entityId);
+    const entityRecord = await filterArrayById(records, entityId);
 
     // Entity record not found
     if (!entityRecord) {
@@ -99,14 +120,21 @@ router.get("/:entity/:id", async (req, res) => {
   }
 });
 
-/** @route: POST /api/:entity
- * @todo: validate the request body
- * @param: entity - the name of the parent container
+/**
+ * @route: POST /api/:entity
  * @desc: Add a new record to the entity. Or create a new entity if no previous records found
- * @returns: All the records of the entity (including the new record that was inserted)
+ * @param {string} entity - The name of the parent container
+ * @return {array} records - All the records of the entity (including the new record that was inserted)
  */
 router.post("/:entity", async (req, res) => {
   try {
+    if (!req.body.id) {
+      return res.status(400).json({
+        success: false,
+        message: "Every record entered must have an id associated with it!",
+      });
+    }
+
     // Fetch the data from the file
     const data = await readFromFile();
 
@@ -131,7 +159,7 @@ router.post("/:entity", async (req, res) => {
     const id = req.body.id;
 
     // Validate for unique id
-    const uniqueRecord = await filterArray(records, id);
+    const uniqueRecord = await filterArrayById(records, id);
 
     // In case a record with the same id in that entity is found
     if (uniqueRecord) {
@@ -152,7 +180,7 @@ router.post("/:entity", async (req, res) => {
     // Return
     return res
       .status(201)
-      .json({ success: true, length: data[entity].length, data: data[entity] });
+      .json({ success: true, length: records.length, data: records });
   } catch (error) {
     console.log(error);
     return res
@@ -161,11 +189,12 @@ router.post("/:entity", async (req, res) => {
   }
 });
 
-/** @route: PUT /api/:entity/:id
- * @param: entity - the name of the parent container
- * @param: id - the id of the record of the requested entity
+/**
+ * @route: PUT /api/:entity/:id
  * @desc: Edit an existing record of the entity identitfied by a unique id.
- * @returns: The updated record
+ * @param {string} entity - the name of the parent container
+ * @param {number} id - the id of the record of the requested entity
+ * @return {object} updatedRecord - The updated record
  */
 router.put("/:entity/:id", async (req, res) => {
   try {
@@ -206,8 +235,8 @@ router.put("/:entity/:id", async (req, res) => {
     }
 
     // Check if the record with the given id exists
-    const recordExists = await filterArray(records, recordId);
-    const index = await filterArrayAndReturnIndex(records, recordId);
+    const recordExists = await filterArrayById(records, recordId);
+    const index = await filterArrayByIdAndReturnIndex(records, recordId);
 
     // Records does not exist
     if (!recordExists) {
@@ -246,11 +275,12 @@ router.put("/:entity/:id", async (req, res) => {
   }
 });
 
-/** @route: DELETE /api/:entity/:id
- * @param: entity - the name of the parent container
- * @param: id - the id of the record of the requested entity
+/**
+ * @route: DELETE /api/:entity/:id
  * @desc: Delete an existing record of the entity identitfied by a unique id.
- * @returns: Success or error message
+ * @param {string} entity - the name of the parent container
+ * @param {number} id - the id of the record of the requested entity
+ * @return {string} message - Success or error message
  */
 router.delete("/:entity/:id", async (req, res) => {
   try {
@@ -281,7 +311,7 @@ router.delete("/:entity/:id", async (req, res) => {
     }
 
     // Check if the record with the given id exists
-    const index = await filterArrayAndReturnIndex(records, recordId);
+    const index = await filterArrayByIdAndReturnIndex(records, recordId);
 
     // Records does not exist
     if (index === -1) {

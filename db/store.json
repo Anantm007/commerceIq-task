@@ -1,1 +1,32 @@
-{"posts":[{"id":0,"title":"000 it","author":"anant mathur","views":10020,"reviews":7},{"id":1,"title":"test again","author":"ttttt","views":40,"reviews":49},{"id":2,"title":"author id 2","author":"anananannan","views":230,"reviews":7}]}
+{
+  "posts": [
+    {
+      "id": 0,
+      "title": "000 it",
+      "author": "anant mathur",
+      "views": 69,
+      "reviews": 7
+    },
+    {
+      "id": 1,
+      "title": "test again",
+      "author": "ttttt",
+      "views": 40,
+      "reviews": 49
+    },
+    {
+      "id": 1,
+      "title": "check",
+      "author": "ttttt",
+      "views": 40,
+      "reviews": 449
+    },
+    {
+      "id": 2,
+      "title": "author id 2",
+      "author": "anananannan",
+      "views": 230,
+      "reviews": 7
+    }
+  ]
+}
