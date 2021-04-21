@@ -10,6 +10,7 @@ const {
   filterArrayByIdAndReturnIndex,
   filterArray,
   sortArray,
+  searchArray,
 } = require("../helpers/utils");
 
 /**
@@ -47,7 +48,12 @@ router.get("/:entity", async (req, res) => {
 
     // Filtering the records (if any)
     if (JSON.stringify(queryObj) !== JSON.stringify({})) {
-      records = await filterArray(records, queryObj);
+      records = await filterArray(records, req.query);
+    }
+
+    // Entity level Searching
+    if ("q" in queryObj) {
+      records = await searchArray(records, queryObj);
     }
 
     // Sorting the records, by default in ascending order
@@ -103,7 +109,7 @@ router.get("/:entity/:id", async (req, res) => {
     const entityRecord = await filterArrayById(records, entityId);
 
     // Entity record not found
-    if (!entityRecord) {
+    if (!entityRecord || !records) {
       return res.status(404).json({
         success: false,
         message: `${entity} with id ${entityId} not found!`,
@@ -128,7 +134,7 @@ router.get("/:entity/:id", async (req, res) => {
  */
 router.post("/:entity", async (req, res) => {
   try {
-    if (!req.body.id) {
+    if (req.body.id === undefined) {
       return res.status(400).json({
         success: false,
         message: "Every record entered must have an id associated with it!",
@@ -150,7 +156,7 @@ router.post("/:entity", async (req, res) => {
     const entity = req.params.entity;
     let records = data[entity];
 
-    // If posts not found
+    // If records not found
     if (!records || records.length === 0) {
       records = [];
     }

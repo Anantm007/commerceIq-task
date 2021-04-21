@@ -3,30 +3,23 @@
     {
       "id": 0,
       "title": "000 it",
-      "author": "anant mathur",
-      "views": 69,
+      "author": "anant",
+      "views": 10020,
       "reviews": 7
     },
     {
       "id": 1,
-      "title": "test again",
-      "author": "ttttt",
-      "views": 40,
-      "reviews": 49
-    },
-    {
-      "id": 1,
-      "title": "check",
-      "author": "ttttt",
-      "views": 40,
-      "reviews": 449
+      "title": "post 1",
+      "author": "ajay",
+      "views": 70,
+      "reviews": 32
     },
     {
       "id": 2,
-      "title": "author id 2",
-      "author": "anananannan",
-      "views": 230,
-      "reviews": 7
+      "title": "post 2",
+      "author": "xyz the great one",
+      "views": 65,
+      "reviews": 3
     }
   ]
 }

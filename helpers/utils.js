@@ -31,6 +31,10 @@ const writeToFile = async (data) => {
 
 // Filter the array and return the required object
 const filterArrayById = async (records, id) => {
+  if (!records) {
+    return [];
+  }
+
   const filteredRecords = await records.filter((record) => {
     return record.id === id;
   });
@@ -45,7 +49,7 @@ const filterArrayById = async (records, id) => {
 const filterArrayByIdAndReturnIndex = async (records, id) => {
   let index = -1;
 
-  const filteredRecords = await records.filter((record, i) => {
+  await records.filter((record, i) => {
     if (record.id === id) {
       index = i;
     }
@@ -64,28 +68,40 @@ const filterArrayByIdAndReturnIndex = async (records, id) => {
  */
 const filterArray = async (records, filteringObj) => {
   // Ignore _sort and _order while filtering
-  if (filteringObj._sort) {
-    delete filteringObj._sort;
+  const tempObj = JSON.parse(JSON.stringify(filteringObj));
+
+  if (tempObj._sort) {
+    tempObj._sort = undefined;
   }
 
-  if (filteringObj._order) {
-    delete filteringObj._order;
+  if (tempObj._order) {
+    tempObj._order = undefined;
+  }
+
+  if (tempObj.q) {
+    tempObj.q = undefined;
+  }
+
+  if (JSON.stringify(tempObj) === JSON.stringify({})) {
+    return records;
   }
 
   const filteredRecords = records.filter((record) => {
     let counter = 0;
 
-    for (const key in filteringObj) {
+    for (const key in tempObj) {
+      if (!tempObj[key]) {
+        continue;
+      }
+
       counter++;
 
-      if (record[key].toString() !== filteringObj[key]) {
+      if (record[key] && record[key].toString() !== tempObj[key]) {
         return false;
       }
 
-      if (counter === Object.keys(filteringObj).length) {
+      if (counter === Object.keys(tempObj).length) {
         return true;
-      } else {
-        continue;
       }
     }
   });
@@ -124,6 +140,35 @@ const sortArray = async (records, key, order) => {
   return sortedRecords;
 };
 
+/**
+ * Search in an Array
+ * @param {array} records - The array to be sorted
+ * @param {string} key - The key attribute on whose basis the records should be searched
+ * @return {array} finalRecords - The searched array
+ */
+const searchArray = async (records, criteria) => {
+  let key, value;
+
+  for (x in criteria) {
+    key = x;
+    value = criteria[x];
+  }
+
+  let finalRecords = [];
+
+  records.forEach((record) => {
+    Object.keys(record).forEach((objKey) => {
+      const y = record[objKey].toString();
+      if (y.includes(value)) {
+        finalRecords.push(record);
+        return;
+      }
+    });
+  });
+
+  return finalRecords;
+};
+
 module.exports = {
   readFromFile,
   writeToFile,
@@ -131,4 +176,5 @@ module.exports = {
   filterArrayByIdAndReturnIndex,
   filterArray,
   sortArray,
+  searchArray,
 };
