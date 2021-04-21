@@ -22,38 +22,36 @@ This repository contains code for a REST based JSON mock server to easily add, u
 2. cd commerceIq-task
 3. npm install
 4. npm run dev
-5. Open the project on localhost:3007
+5. Open the project on localhost:8001
 ```
 
 ## Features of the Application
 
 1. This application is a REST based JSON mock server to easily add, update, delete and access data from a JSON file.
 
-2. very data set should have a parent identifier (entity), and a primary key - "id".
+2. Every data has a parent identifier (entity), and a primary key - "id".
 
-3. A JSON file namely store.json is used as the Db for all the operations in the API.
+3. A JSON file namely store.json is used as the database/base file for all the operations in the API.
 
 4. The supported requests are - GET, POST, PUT, and DELETE.
 
 5. Whenever any change is made to the data, it gets automatically saved to the JSON file.
 
-6. The JSON file supports multiple (infinite) entity types.
+6. The JSON file supports multiple (infinite) entity types. (Refer _API endpoints_ for more details)
 
-7. We can fetch, create, update, and delete all (or filtered) records of the enrtity we wish to.
+7. The API also supports sorting (using a parameter and order), searching (using a query string) and filtering (using key value pair(s)) for a particular entity records.
 
-8. The API also supports sorting (using a parameter and order), searching (using a query string) and filtering (using key value pair(s)) for a particular entity records.
+8. Nested support for sorting and searching is also there.
 
-9. Nested support for sorting and searching is also there.
+9. store.json can be an empty file or prepopulated.
 
-10. store.json can be an empty file or prepopulated.
+10. "id" has to be present in every document (every entity has "id" as primary key) and it cannot be mutated in any case.
 
-11. "id" has to be present in every document (every entity has "id" as primary key) and it cannot be mutated in any case.
+11. morgan is used as a logger in the application. All the logs are stored in ./history.log with information about the request and response.
 
-12. morgan is used as a logger in the application. All the logs are stored in ./history.log with information about the request and response.
+12. The API is developed using all the REST standards. The code is nicely structured, modular and hence scaleable.
 
-13. The API is developed using all the REST standards. The code is nicely structured, modular and hence scaleable.
-
-14. All the functions/routes have detailed comments associated with them.
+13. All the functions/routes have detailed comments describing them with the input paramers, return types and the description.
 
 ## API endpoints
 
@@ -68,13 +66,13 @@ This repository contains code for a REST based JSON mock server to easily add, u
 
 5. DELETE /api/:entity/:id - Delete a particular record of a particular entity.
 
-6. GET /api/:entity?\_sort=parameter&\_order=order - Fetch the sorted records of an entity. The parameter should be a valid key. The order can be "asc" (by default) or "descending"
+6. GET /api/:entity?\_sort=parameter&\_order=order - Fetch the sorted records of an entity. The parameter should be a valid key. The order can be "asc" (by default) or "desc"
 
-7. GET /api/:entity?key1=value1&key2=value2 - Fetch the filtered records of an entity. The keys in the parameters should valid. There can be infinite parameters.
+7. GET /api/:entity?key1=value1&key2=value2 - Fetch the filtered records of an entity. The keys in the parameters should be valid. There can be infinite parameters.
 
-8. GET /api/:entity?q=string - Fetch the records of an entity by searching. We look for the objects that have the query string as any of the values. We currently support only 1 paramter. Numbers are also treated as strings for this functionality.
+8. GET /api/:entity?q=string - Fetch the records of an entity by searching. We look for the objects that have the query string as any of the values. We currently support only 1 parameter. Numbers are also treated as strings for this functionality.
 
-9. GET /api/:entity?\_sort=parameter&\_order=order&q=string - Fetch the records of an entity by searching and sorting. First look for the objects that have the query string as any of the values. Then sort them according to the parameter and required values.
+9. GET /api/:entity?\_sort=parameter&\_order=order&q=string - Fetch the records of an entity by searching and sorting. First look for the objects that have the query string as any of the values. Then sort them according to the parameter and the order (asc or desc).
 
 ## Technology Stack
 
@@ -87,7 +85,7 @@ This repository contains code for a REST based JSON mock server to easily add, u
 
 - cors: To enable cross origin resource sharing
 
-- express: Nodejs framework for building APIs
+- express: Nodejs framework for building web APIs
 
 - morgan: To keep a track of app logs
 
