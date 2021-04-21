@@ -3,11 +3,12 @@ const express = require("express");
 const router = express.Router();
 
 // Utilities
-const fs = require("fs");
-const path = require("path");
-
-// File location where the JSON Database is stored
-const filePath = path.join(process.cwd(), "db", "store.json");
+const {
+  readFromFile,
+  writeToFile,
+  filterArray,
+  filterArrayAndReturnIndex,
+} = require("../helpers/utils");
 
 /** @route: GET: /api/:entity
  * @todo: Sorting and filtering
@@ -16,18 +17,8 @@ const filePath = path.join(process.cwd(), "db", "store.json");
  */
 router.get("/:entity", async (req, res) => {
   try {
-    let jsonData = await fs.readFileSync(filePath, "utf-8");
-
-    // If the file is completely empty, initialise an empty JSON object in the file
-    if (!jsonData) {
-      const data = {};
-      await fs.writeFileSync(filePath, JSON.stringify(data));
-
-      jsonData = await fs.readFileSync(filePath);
-    }
-
-    // Parse the data
-    const data = JSON.parse(jsonData);
+    // Fetch the data from the file
+    const data = await readFromFile();
 
     // If file data not found
     if (!data) {
@@ -64,23 +55,13 @@ router.get("/:entity", async (req, res) => {
 /** @route: GET /api/:entity/:id
  * @param: entity - the name of the parent container
  * @param: id - the id of the record of the requested entity
- * @desc: Fetch a single entity by id (filters can also be there)
- * @returns: The entity with the requested id. Return 404 if not found.
+ * @desc: Fetch a single record (by id) of the requested entity
+ * @returns: The record in the requested entity. Return 404 if not found.
  */
 router.get("/:entity/:id", async (req, res) => {
   try {
-    let jsonData = await fs.readFileSync(filePath, "utf-8");
-
-    // if the file is completely empty, initialise an empty JSON object in the file
-    if (!jsonData) {
-      const data = {};
-      await fs.writeFileSync(filePath, JSON.stringify(data));
-
-      jsonData = await fs.readFileSync(filePath);
-    }
-
-    // Parse the data
-    const data = JSON.parse(jsonData);
+    // Fetch the data from the file
+    const data = await readFromFile();
 
     // If file data not found
     if (!data) {
@@ -97,13 +78,8 @@ router.get("/:entity/:id", async (req, res) => {
     // request parameters are strings whereas our ids are numbers
     const entityId = parseInt(req.params.id);
 
-    // Take out the specific entity with the mentioned id
-    const filteredEntity = await records.filter((entityRecord) => {
-      return entityRecord.id === entityId;
-    });
-
-    // filteredEntity is an array, we need just the frst (and only) element
-    const entityRecord = filteredEntity[0];
+    // Take out the specific entity record with the mentioned id
+    const entityRecord = await filterArray(records, entityId);
 
     // Entity record not found
     if (!entityRecord) {
@@ -131,18 +107,8 @@ router.get("/:entity/:id", async (req, res) => {
  */
 router.post("/:entity", async (req, res) => {
   try {
-    let jsonData = await fs.readFileSync(filePath, "utf-8");
-
-    // if the file is completely empty, initialise an empty JSON object in the file and return
-    if (!jsonData) {
-      const data = {};
-      await fs.writeFileSync(filePath, JSON.stringify(data));
-
-      jsonData = await fs.readFileSync(filePath);
-    }
-
-    // Parse the data
-    const data = JSON.parse(jsonData);
+    // Fetch the data from the file
+    const data = await readFromFile();
 
     // If file data not found
     if (!data) {
@@ -165,12 +131,10 @@ router.post("/:entity", async (req, res) => {
     const id = req.body.id;
 
     // Validate for unique id
-    const checkUniqueRecord = await records.filter((entityRecord) => {
-      return entityRecord.id === id;
-    });
+    const uniqueRecord = await filterArray(records, id);
 
     // In case a record with the same id in that entity is found
-    if (checkUniqueRecord.length > 0) {
+    if (uniqueRecord) {
       return res
         .status(400)
         .json({ success: false, message: "Please enter a unique ID" });
@@ -183,7 +147,7 @@ router.post("/:entity", async (req, res) => {
     data[entity] = records;
 
     // Write the data back into the file
-    await fs.writeFileSync(filePath, JSON.stringify(data));
+    await writeToFile(data);
 
     // Return
     return res
@@ -205,6 +169,17 @@ router.post("/:entity", async (req, res) => {
  */
 router.put("/:entity/:id", async (req, res) => {
   try {
+    // Fetch the data from the file
+    const data = await readFromFile();
+
+    // If file data not found
+    if (!data) {
+      return res.status(404).json({
+        success: false,
+        message: "No File Data found!",
+      });
+    }
+
     // Make sure that the id cannot be mutated
     const id = req.body.id;
 
@@ -217,28 +192,6 @@ router.put("/:entity/:id", async (req, res) => {
 
     // Record id
     const recordId = parseInt(req.params.id);
-
-    // Read the file
-    let jsonData = await fs.readFileSync(filePath, "utf-8");
-
-    // if the file is completely empty, initialise an empty JSON object in the file and return
-    if (!jsonData) {
-      const data = {};
-      await fs.writeFileSync(filePath, JSON.stringify(data));
-
-      jsonData = await fs.readFileSync(filePath);
-    }
-
-    // Parse the data
-    const data = JSON.parse(jsonData);
-
-    // If file data not found
-    if (!data) {
-      return res.status(404).json({
-        success: false,
-        message: "No File Data found!",
-      });
-    }
 
     // Get all the records from the entire DB
     const entity = req.params.entity;
@@ -253,17 +206,11 @@ router.put("/:entity/:id", async (req, res) => {
     }
 
     // Check if the record with the given id exists
-    let index;
-    const checkRecordExists = await records.filter((entityRecord, i) => {
-      if (entityRecord.id === recordId) {
-        index = i;
-      }
-
-      return entityRecord.id === recordId;
-    });
+    const recordExists = await filterArray(records, recordId);
+    const index = await filterArrayAndReturnIndex(records, recordId);
 
     // Records does not exist
-    if (checkRecordExists.length === 0) {
+    if (!recordExists) {
       return res.status(400).json({
         success: false,
         message: `${entity} with id ${recordId} not found`,
@@ -271,7 +218,7 @@ router.put("/:entity/:id", async (req, res) => {
     }
 
     // This will be our updated record
-    let updatedRecord = checkRecordExists[0];
+    let updatedRecord = recordExists;
 
     // Loop through the request body and update the necessary fields
     for (const key in req.body) {
@@ -287,7 +234,7 @@ router.put("/:entity/:id", async (req, res) => {
     data[entity] = records;
 
     // Write the data back into the file
-    await fs.writeFileSync(filePath, JSON.stringify(data));
+    await writeToFile(data);
 
     // Return
     return res.status(201).json({ success: true, data: updatedRecord });
@@ -307,22 +254,8 @@ router.put("/:entity/:id", async (req, res) => {
  */
 router.delete("/:entity/:id", async (req, res) => {
   try {
-    // Record id
-    const recordId = parseInt(req.params.id);
-
-    // Read the file
-    let jsonData = await fs.readFileSync(filePath, "utf-8");
-
-    // if the file is completely empty, initialise an empty JSON object in the file and return
-    if (!jsonData) {
-      const data = {};
-      await fs.writeFileSync(filePath, JSON.stringify(data));
-
-      jsonData = await fs.readFileSync(filePath);
-    }
-
-    // Parse the data
-    const data = JSON.parse(jsonData);
+    // Fetch the data from the file
+    const data = await readFromFile();
 
     // If file data not found
     if (!data) {
@@ -331,6 +264,9 @@ router.delete("/:entity/:id", async (req, res) => {
         message: "No File Data found!",
       });
     }
+
+    // Record id
+    const recordId = parseInt(req.params.id);
 
     // Get all the records from the entire DB
     const entity = req.params.entity;
@@ -345,17 +281,10 @@ router.delete("/:entity/:id", async (req, res) => {
     }
 
     // Check if the record with the given id exists
-    let index;
-    const checkRecordExists = await records.filter((entityRecord, i) => {
-      if (entityRecord.id === recordId) {
-        index = i;
-      }
-
-      return entityRecord.id === recordId;
-    });
+    const index = await filterArrayAndReturnIndex(records, recordId);
 
     // Records does not exist
-    if (checkRecordExists.length === 0) {
+    if (index === -1) {
       return res.status(400).json({
         success: false,
         message: `${entity} with id ${recordId} not found`,
@@ -369,7 +298,7 @@ router.delete("/:entity/:id", async (req, res) => {
     data[entity] = records;
 
     // Write the data back into the file
-    await fs.writeFileSync(filePath, JSON.stringify(data));
+    await writeToFile(data);
 
     // Return
     return res

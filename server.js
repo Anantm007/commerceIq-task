@@ -10,31 +10,29 @@ const cors = require("cors");
 // Getting data in json format
 app.use(bodyParser.json());
 
-// CORS
-app.use(cors());
-
 // Dev Middleware for keeping a record of logs
 app.use(
   morgan("common", {
     stream: fs.createWriteStream("./history.log", { flags: "a" }),
   })
 );
-
 app.use(morgan("dev"));
 
-// Test Route
+// CORS
+app.use(cors());
+
+// Entry point Route
 app.get("/api", async (req, res) => {
-  try {
-    return res.status(200).json({
-      success: true,
-      message:
-        "API running! You can check out the documentation at ___ for all the details.",
-    });
-  } catch (error) {
-    return res
-      .status(500)
-      .json({ success: false, message: "Internal Server Error!" });
-  }
+  return res.status(200).json({
+    success: true,
+    message:
+      "API running! Please check out the documentation for more details.",
+    code: "https://github.com/Anantm007/commerceIq-task",
+    README:
+      "https://github.com/Anantm007/commerceIq-task/blob/master/README.md",
+    Sample_Requests_Collection:
+      "https://documenter.getpostman.com/view/7916291/TzJvcbbK",
+  });
 });
 
 // Home route, redirecting to /api
