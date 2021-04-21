@@ -158,9 +158,16 @@ const searchArray = async (records, criteria) => {
 
   records.forEach((record) => {
     Object.keys(record).forEach((objKey) => {
-      const y = record[objKey].toString();
-      if (y.includes(value)) {
-        finalRecords.push(record);
+      const objValue = record[objKey].toString();
+      if (objValue.includes(value)) {
+        // Remove duplicates
+        const check = finalRecords.filter((recordTemp) => {
+          return recordTemp.id === record.id;
+        });
+
+        if (check.length === 0) {
+          finalRecords.push(record);
+        }
         return;
       }
     });
