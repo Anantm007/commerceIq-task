@@ -1,4 +1,4 @@
-# BukuWarung Assignment
+# CommerceIQ Assignment
 
 #### Deployed Application API:
 
